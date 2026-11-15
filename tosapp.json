@@ -1,0 +1,102 @@
+{
+  "app_id": "kopiadocker",
+  "title": "Kopia",
+  "image": "kopia/kopia:20261110.0.231742",
+  "repo_name": "kopia",
+  "mode": "wrapper",
+  "container_port": 51515,
+  "category": [
+    "Backup_Sync"
+  ],
+  "volumes": [
+    {
+      "host": "/Volume1/DockerAppData/kopiadocker/config",
+      "container": "/config"
+    },
+    {
+      "host": "/Volume1/DockerAppData/kopiadocker/data",
+      "container": "/data"
+    }
+  ],
+  "env": {
+    "TZ": "Asia/Shanghai"
+  },
+  "auth": "kopia",
+  "upstream_url": "https://github.com/kopia/kopia",
+  "upstream_license": "Apache-2.0",
+  "descript": "Kopia is a fast, encrypted backup tool with a web UI: create snapshots of folders on the NAS to local disk, S3, SFTP or WebDAV, schedule them, browse the snapshot history, mount or restore files, and apply retention policies. Snapshots are always encrypted and deduplicated, and the repository and its configuration stay in the application data folder.",
+  "release_note": "1. First release: Kopia 20261110 from Docker Hub as a non-root container. Encrypted, deduplicated snapshots with a web UI, scheduling and restore; repository and config in the application data folder.",
+  "important": "Requires DockerEngine (installed automatically if missing). The first start generates a UI password and prints `user=kopia password=...` in the container log (docker logs kopiadocker); the same password is stored in DockerAppData/kopiadocker/config/.server-password. Create a repository in the UI (a path under /data is a good choice) and remember its password - without it snapshots cannot be restored. Plain HTTP; use a TLS reverse proxy before exposing it to the internet.",
+  "probe": {
+    "user_in_image": "(root)",
+    "entrypoint": [
+      "/bin/kopia"
+    ],
+    "cmd": null,
+    "exposed_ports": [],
+    "declared_volumes": [],
+    "image_healthcheck": [],
+    "digest": "kopia/kopia@sha256:efc5fd7aa9df34f5513a6ef2253adf9601b96ca50edeba78f6dc8e3069baac2f",
+    "architecture": "x86_64",
+    "platforms": [
+      "x86_64",
+      "aarch64"
+    ],
+    "http_client_in_image": "",
+    "trial_run": {
+      "ok": false,
+      "http_code": "",
+      "state": "exited",
+      "paths": [],
+      "host_port": 18000,
+      "log_tail": " --url=URL [<flags>]\n    create [<flags>]\n      azure --container=CONTAINER --storage-account=STORAGE-ACCOUNT [<flags>]\n      b2 --bucket=BUCKET --key-id=KEY-ID --key=KEY [<flags>]\n      filesystem --path=PATH [<flags>]\n      from-config [<flags>]\n      gcs --bucket=BUCKET [<flags>]\n      gdrive --folder-id=FOLDER-ID [<flags>]\n      rclone --remote-path=REMOTE-PATH [<flags>]\n      s3 --bucket=BUCKET --access-key=ACCESS-KEY --secret-access-key=SECRET-ACCESS-KEY [<flags>]\n      sftp --path=PATH --host=HOST --username=USERNAME [<flags>]\n      webdav --url=URL [<flags>]\n    disconnect\n    set-client [<flags>]\n    set-parameters [<flags>]\n    status [<flags>]\n    sync-to [<flags>]\n      azure --container=CONTAINER --storage-account=STORAGE-ACCOUNT [<flags>]\n      b2 --bucket=BUCKET --key-id=KEY-ID --key=KEY [<flags>]\n      filesystem --path=PATH [<flags>]\n      from-config [<flags>]\n      gcs --bucket=BUCKET [<flags>]\n      gdrive --folder-id=FOLDER-ID [<flags>]\n      rclone --remote-path=REMOTE-PATH [<flags>]\n      s3 --bucket=BUCKET --access-key=ACCESS-KEY --secret-access-key=SECRET-ACCESS-KEY [<flags>]\n      sftp --path=PATH --host=HOST --username=USERNAME [<flags>]\n      webdav --url=URL [<flags>]\n    throttle\n      get [<flags>]\n      set [<flags>]\n    change-password [<flags>]\n    validate-provider [<flags>]\nUnable to create cache marker in log directory \"/app/logs/content-logs\": error creating cache marker: open /app/logs/content-logs/CACHEDIR.TAG: no such file or directory",
+      "files_in_mounts": ""
+    },
+    "docker_hub": {},
+    "github": {}
+  },
+  "entrypoint_file": "src/entrypoint.sh",
+  "platform": "x86_64",
+  "user": "1000:1000",
+  "publisher": "Moechz",
+  "compose_project": "kopiadocker",
+  "github_repo": "kopia",
+  "upstream_version": "20261110.0.231742",
+  "release_tag_prefix": "v",
+  "version": "20261110.0.231742-1",
+  "help": "https://github.com/Moechz/kopia/issues",
+  "official": "https://github.com/kopia/kopia",
+  "license": "Apache-2.0",
+  "docker_socket": false,
+  "group_add": [],
+  "host_port": 8143,
+  "healthcheck": [
+    "CMD-SHELL",
+    "curl -s -o /dev/null http://127.0.0.1:51515/ || exit 1"
+  ],
+  "healthcheck_start_period": "45s",
+  "wrapper_note": "the image starts a server that needs a user account before it can be used; this\nwrapper generates a random UI password on first start, stores it in /config and\nprints the login line in the container log.",
+  "wrapper_note_readme": "- **Entrypoint wrapper**: generates a random UI password (stored in `config/.server-password`), prints the login line and starts the Kopia server with `--ui --insecure`.",
+  "translations": {
+    "zh-cn": {
+      "descript": "Kopia 是一款快速、加密的备份工具，自带网页界面：把 NAS 上的目录做成快照，备份到本地磁盘、S3、SFTP 或 WebDAV，支持定时、浏览快照历史、挂载或还原文件，并应用保留策略。快照始终加密并去重，仓库与配置都保存在应用数据目录。",
+      "important": "需要 DockerEngine（缺失时应用中心会自动安装）。首次启动会生成界面密码，并在容器日志（docker logs kopiadocker）里打印 `user=kopia password=...`；同一密码也保存在 DockerAppData/kopiadocker/config/.server-password。请在界面里创建仓库（建议放在 /data 下），并记住仓库密码——没有它无法还原快照。界面为纯 HTTP，暴露到公网前请配置带 TLS 的反向代理。",
+      "release_note": "1. 首个版本：基于 Docker Hub 的 Kopia 20261110，以非 root 容器运行。加密去重的快照备份，带网页界面、定时与还原；仓库与配置保存在应用数据目录。"
+    },
+    "zh-hk": {
+      "descript": "Kopia 是一款快速、加密的備份工具，自帶網頁介面：把 NAS 上的目錄做成快照，備份到本機磁碟、S3、SFTP 或 WebDAV，支援定時、瀏覽快照歷史、掛載或還原檔案，並套用保留策略。快照始終加密並去重，倉庫與設定都保存在應用資料目錄。",
+      "important": "需要 DockerEngine（缺少時應用中心會自動安裝）。首次啟動會產生介面密碼，並在容器日誌（docker logs kopiadocker）裡印出 `user=kopia password=...`；同一密碼也保存在 DockerAppData/kopiadocker/config/.server-password。請在介面裡建立倉庫（建議放在 /data 下），並記住倉庫密碼——沒有它無法還原快照。介面為純 HTTP，公開到互聯網前請配置帶 TLS 的反向代理。",
+      "release_note": "1. 首個版本：基於 Docker Hub 的 Kopia 20261110，以非 root 容器運行。加密去重的快照備份，帶網頁介面、定時與還原；倉庫與設定保存在應用資料目錄。"
+    }
+  },
+  "data_notes": "`/config` holds `kopia.config`, the generated UI password and server logs; `/data` (mounted from `.../data`) is the recommended place for a filesystem repository.",
+  "design_notes": [
+    "**Password generated once.** No credential is baked into the package: the wrapper creates a random UI password, stores it in the config volume and prints the login line.",
+    "**Repository created in the UI.** The package does not create a repository; the user picks the storage location and the (separate) repository password."
+  ],
+  "limitations": [
+    "- The UI is plain HTTP; use a TLS reverse proxy before exposing it to the internet.",
+    "- The repository password is not stored by the package; losing it means losing the restores.",
+    "- Snapshot storage grows with the folders you back up; watch free space on the NAS."
+  ]
+}

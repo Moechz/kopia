@@ -1,0 +1,195 @@
+# ===========================================================================
+# Multilingual file for the TOS 7 Docker application "kopiadocker".
+# File name MUST be: <appid>.lang.  23-language superset (14 required by TOS).
+# The App Center picks the text matching the user's device language;
+# untranslated nodes fall back to English, which the official guide allows.
+# Fields: name (app title), auth (upstream author), descript (up to 512
+# chars), release_note, important (up to 512 chars).
+# Translations come from tosapp.json "translations"; run
+#   tosdocker lang <app>          to re-render this file
+#   tosdocker translate <app>     to see what still needs translating
+# ===========================================================================
+[en-us]
+name         = "Kopia"
+auth         = "kopia"
+version      = "@@VERSION@@"
+descript     = "Kopia is a fast, encrypted backup tool with a web UI: create snapshots of folders on the NAS to local disk, S3, SFTP or WebDAV, schedule them, browse the snapshot history, mount or restore files, and apply retention policies. Snapshots are always encrypted and deduplicated, and the repository and its configuration stay in the application data folder."
+release_note = "1. First release: Kopia 20261110 from Docker Hub as a non-root container. Encrypted, deduplicated snapshots with a web UI, scheduling and restore; repository and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates a UI password and prints `user=kopia password=...` in the container log (docker logs kopiadocker); the same password is stored in DockerAppData/kopiadocker/config/.server-password. Create a repository in the UI (a path under /data is a good choice) and remember its password - without it snapshots cannot be restored. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[zh-cn]
+name         = "Kopia"
+auth         = "kopia"
+version      = "@@VERSION@@"
+descript     = "Kopia 是一款快速、加密的备份工具，自带网页界面：把 NAS 上的目录做成快照，备份到本地磁盘、S3、SFTP 或 WebDAV，支持定时、浏览快照历史、挂载或还原文件，并应用保留策略。快照始终加密并去重，仓库与配置都保存在应用数据目录。"
+release_note = "1. 首个版本：基于 Docker Hub 的 Kopia 20261110，以非 root 容器运行。加密去重的快照备份，带网页界面、定时与还原；仓库与配置保存在应用数据目录。"
+important    = "需要 DockerEngine（缺失时应用中心会自动安装）。首次启动会生成界面密码，并在容器日志（docker logs kopiadocker）里打印 `user=kopia password=...`；同一密码也保存在 DockerAppData/kopiadocker/config/.server-password。请在界面里创建仓库（建议放在 /data 下），并记住仓库密码——没有它无法还原快照。界面为纯 HTTP，暴露到公网前请配置带 TLS 的反向代理。"
+
+[zh-hk]
+name         = "Kopia"
+auth         = "kopia"
+version      = "@@VERSION@@"
+descript     = "Kopia 是一款快速、加密的備份工具，自帶網頁介面：把 NAS 上的目錄做成快照，備份到本機磁碟、S3、SFTP 或 WebDAV，支援定時、瀏覽快照歷史、掛載或還原檔案，並套用保留策略。快照始終加密並去重，倉庫與設定都保存在應用資料目錄。"
+release_note = "1. 首個版本：基於 Docker Hub 的 Kopia 20261110，以非 root 容器運行。加密去重的快照備份，帶網頁介面、定時與還原；倉庫與設定保存在應用資料目錄。"
+important    = "需要 DockerEngine（缺少時應用中心會自動安裝）。首次啟動會產生介面密碼，並在容器日誌（docker logs kopiadocker）裡印出 `user=kopia password=...`；同一密碼也保存在 DockerAppData/kopiadocker/config/.server-password。請在介面裡建立倉庫（建議放在 /data 下），並記住倉庫密碼——沒有它無法還原快照。介面為純 HTTP，公開到互聯網前請配置帶 TLS 的反向代理。"
+
+[fr-fr]
+name         = "Kopia"
+auth         = "kopia"
+version      = "@@VERSION@@"
+descript     = "Kopia is a fast, encrypted backup tool with a web UI: create snapshots of folders on the NAS to local disk, S3, SFTP or WebDAV, schedule them, browse the snapshot history, mount or restore files, and apply retention policies. Snapshots are always encrypted and deduplicated, and the repository and its configuration stay in the application data folder."
+release_note = "1. First release: Kopia 20261110 from Docker Hub as a non-root container. Encrypted, deduplicated snapshots with a web UI, scheduling and restore; repository and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates a UI password and prints `user=kopia password=...` in the container log (docker logs kopiadocker); the same password is stored in DockerAppData/kopiadocker/config/.server-password. Create a repository in the UI (a path under /data is a good choice) and remember its password - without it snapshots cannot be restored. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[de-de]
+name         = "Kopia"
+auth         = "kopia"
+version      = "@@VERSION@@"
+descript     = "Kopia is a fast, encrypted backup tool with a web UI: create snapshots of folders on the NAS to local disk, S3, SFTP or WebDAV, schedule them, browse the snapshot history, mount or restore files, and apply retention policies. Snapshots are always encrypted and deduplicated, and the repository and its configuration stay in the application data folder."
+release_note = "1. First release: Kopia 20261110 from Docker Hub as a non-root container. Encrypted, deduplicated snapshots with a web UI, scheduling and restore; repository and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates a UI password and prints `user=kopia password=...` in the container log (docker logs kopiadocker); the same password is stored in DockerAppData/kopiadocker/config/.server-password. Create a repository in the UI (a path under /data is a good choice) and remember its password - without it snapshots cannot be restored. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[it-it]
+name         = "Kopia"
+auth         = "kopia"
+version      = "@@VERSION@@"
+descript     = "Kopia is a fast, encrypted backup tool with a web UI: create snapshots of folders on the NAS to local disk, S3, SFTP or WebDAV, schedule them, browse the snapshot history, mount or restore files, and apply retention policies. Snapshots are always encrypted and deduplicated, and the repository and its configuration stay in the application data folder."
+release_note = "1. First release: Kopia 20261110 from Docker Hub as a non-root container. Encrypted, deduplicated snapshots with a web UI, scheduling and restore; repository and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates a UI password and prints `user=kopia password=...` in the container log (docker logs kopiadocker); the same password is stored in DockerAppData/kopiadocker/config/.server-password. Create a repository in the UI (a path under /data is a good choice) and remember its password - without it snapshots cannot be restored. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[es-es]
+name         = "Kopia"
+auth         = "kopia"
+version      = "@@VERSION@@"
+descript     = "Kopia is a fast, encrypted backup tool with a web UI: create snapshots of folders on the NAS to local disk, S3, SFTP or WebDAV, schedule them, browse the snapshot history, mount or restore files, and apply retention policies. Snapshots are always encrypted and deduplicated, and the repository and its configuration stay in the application data folder."
+release_note = "1. First release: Kopia 20261110 from Docker Hub as a non-root container. Encrypted, deduplicated snapshots with a web UI, scheduling and restore; repository and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates a UI password and prints `user=kopia password=...` in the container log (docker logs kopiadocker); the same password is stored in DockerAppData/kopiadocker/config/.server-password. Create a repository in the UI (a path under /data is a good choice) and remember its password - without it snapshots cannot be restored. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[hu-hu]
+name         = "Kopia"
+auth         = "kopia"
+version      = "@@VERSION@@"
+descript     = "Kopia is a fast, encrypted backup tool with a web UI: create snapshots of folders on the NAS to local disk, S3, SFTP or WebDAV, schedule them, browse the snapshot history, mount or restore files, and apply retention policies. Snapshots are always encrypted and deduplicated, and the repository and its configuration stay in the application data folder."
+release_note = "1. First release: Kopia 20261110 from Docker Hub as a non-root container. Encrypted, deduplicated snapshots with a web UI, scheduling and restore; repository and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates a UI password and prints `user=kopia password=...` in the container log (docker logs kopiadocker); the same password is stored in DockerAppData/kopiadocker/config/.server-password. Create a repository in the UI (a path under /data is a good choice) and remember its password - without it snapshots cannot be restored. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[ja-jp]
+name         = "Kopia"
+auth         = "kopia"
+version      = "@@VERSION@@"
+descript     = "Kopia is a fast, encrypted backup tool with a web UI: create snapshots of folders on the NAS to local disk, S3, SFTP or WebDAV, schedule them, browse the snapshot history, mount or restore files, and apply retention policies. Snapshots are always encrypted and deduplicated, and the repository and its configuration stay in the application data folder."
+release_note = "1. First release: Kopia 20261110 from Docker Hub as a non-root container. Encrypted, deduplicated snapshots with a web UI, scheduling and restore; repository and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates a UI password and prints `user=kopia password=...` in the container log (docker logs kopiadocker); the same password is stored in DockerAppData/kopiadocker/config/.server-password. Create a repository in the UI (a path under /data is a good choice) and remember its password - without it snapshots cannot be restored. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[ko-kr]
+name         = "Kopia"
+auth         = "kopia"
+version      = "@@VERSION@@"
+descript     = "Kopia is a fast, encrypted backup tool with a web UI: create snapshots of folders on the NAS to local disk, S3, SFTP or WebDAV, schedule them, browse the snapshot history, mount or restore files, and apply retention policies. Snapshots are always encrypted and deduplicated, and the repository and its configuration stay in the application data folder."
+release_note = "1. First release: Kopia 20261110 from Docker Hub as a non-root container. Encrypted, deduplicated snapshots with a web UI, scheduling and restore; repository and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates a UI password and prints `user=kopia password=...` in the container log (docker logs kopiadocker); the same password is stored in DockerAppData/kopiadocker/config/.server-password. Create a repository in the UI (a path under /data is a good choice) and remember its password - without it snapshots cannot be restored. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[pl-pl]
+name         = "Kopia"
+auth         = "kopia"
+version      = "@@VERSION@@"
+descript     = "Kopia is a fast, encrypted backup tool with a web UI: create snapshots of folders on the NAS to local disk, S3, SFTP or WebDAV, schedule them, browse the snapshot history, mount or restore files, and apply retention policies. Snapshots are always encrypted and deduplicated, and the repository and its configuration stay in the application data folder."
+release_note = "1. First release: Kopia 20261110 from Docker Hub as a non-root container. Encrypted, deduplicated snapshots with a web UI, scheduling and restore; repository and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates a UI password and prints `user=kopia password=...` in the container log (docker logs kopiadocker); the same password is stored in DockerAppData/kopiadocker/config/.server-password. Create a repository in the UI (a path under /data is a good choice) and remember its password - without it snapshots cannot be restored. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[ru-ru]
+name         = "Kopia"
+auth         = "kopia"
+version      = "@@VERSION@@"
+descript     = "Kopia is a fast, encrypted backup tool with a web UI: create snapshots of folders on the NAS to local disk, S3, SFTP or WebDAV, schedule them, browse the snapshot history, mount or restore files, and apply retention policies. Snapshots are always encrypted and deduplicated, and the repository and its configuration stay in the application data folder."
+release_note = "1. First release: Kopia 20261110 from Docker Hub as a non-root container. Encrypted, deduplicated snapshots with a web UI, scheduling and restore; repository and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates a UI password and prints `user=kopia password=...` in the container log (docker logs kopiadocker); the same password is stored in DockerAppData/kopiadocker/config/.server-password. Create a repository in the UI (a path under /data is a good choice) and remember its password - without it snapshots cannot be restored. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[tr-tr]
+name         = "Kopia"
+auth         = "kopia"
+version      = "@@VERSION@@"
+descript     = "Kopia is a fast, encrypted backup tool with a web UI: create snapshots of folders on the NAS to local disk, S3, SFTP or WebDAV, schedule them, browse the snapshot history, mount or restore files, and apply retention policies. Snapshots are always encrypted and deduplicated, and the repository and its configuration stay in the application data folder."
+release_note = "1. First release: Kopia 20261110 from Docker Hub as a non-root container. Encrypted, deduplicated snapshots with a web UI, scheduling and restore; repository and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates a UI password and prints `user=kopia password=...` in the container log (docker logs kopiadocker); the same password is stored in DockerAppData/kopiadocker/config/.server-password. Create a repository in the UI (a path under /data is a good choice) and remember its password - without it snapshots cannot be restored. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[pt-pt]
+name         = "Kopia"
+auth         = "kopia"
+version      = "@@VERSION@@"
+descript     = "Kopia is a fast, encrypted backup tool with a web UI: create snapshots of folders on the NAS to local disk, S3, SFTP or WebDAV, schedule them, browse the snapshot history, mount or restore files, and apply retention policies. Snapshots are always encrypted and deduplicated, and the repository and its configuration stay in the application data folder."
+release_note = "1. First release: Kopia 20261110 from Docker Hub as a non-root container. Encrypted, deduplicated snapshots with a web UI, scheduling and restore; repository and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates a UI password and prints `user=kopia password=...` in the container log (docker logs kopiadocker); the same password is stored in DockerAppData/kopiadocker/config/.server-password. Create a repository in the UI (a path under /data is a good choice) and remember its password - without it snapshots cannot be restored. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[ar-sa]
+name         = "Kopia"
+auth         = "kopia"
+version      = "@@VERSION@@"
+descript     = "Kopia is a fast, encrypted backup tool with a web UI: create snapshots of folders on the NAS to local disk, S3, SFTP or WebDAV, schedule them, browse the snapshot history, mount or restore files, and apply retention policies. Snapshots are always encrypted and deduplicated, and the repository and its configuration stay in the application data folder."
+release_note = "1. First release: Kopia 20261110 from Docker Hub as a non-root container. Encrypted, deduplicated snapshots with a web UI, scheduling and restore; repository and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates a UI password and prints `user=kopia password=...` in the container log (docker logs kopiadocker); the same password is stored in DockerAppData/kopiadocker/config/.server-password. Create a repository in the UI (a path under /data is a good choice) and remember its password - without it snapshots cannot be restored. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[cs-cz]
+name         = "Kopia"
+auth         = "kopia"
+version      = "@@VERSION@@"
+descript     = "Kopia is a fast, encrypted backup tool with a web UI: create snapshots of folders on the NAS to local disk, S3, SFTP or WebDAV, schedule them, browse the snapshot history, mount or restore files, and apply retention policies. Snapshots are always encrypted and deduplicated, and the repository and its configuration stay in the application data folder."
+release_note = "1. First release: Kopia 20261110 from Docker Hub as a non-root container. Encrypted, deduplicated snapshots with a web UI, scheduling and restore; repository and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates a UI password and prints `user=kopia password=...` in the container log (docker logs kopiadocker); the same password is stored in DockerAppData/kopiadocker/config/.server-password. Create a repository in the UI (a path under /data is a good choice) and remember its password - without it snapshots cannot be restored. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[he-il]
+name         = "Kopia"
+auth         = "kopia"
+version      = "@@VERSION@@"
+descript     = "Kopia is a fast, encrypted backup tool with a web UI: create snapshots of folders on the NAS to local disk, S3, SFTP or WebDAV, schedule them, browse the snapshot history, mount or restore files, and apply retention policies. Snapshots are always encrypted and deduplicated, and the repository and its configuration stay in the application data folder."
+release_note = "1. First release: Kopia 20261110 from Docker Hub as a non-root container. Encrypted, deduplicated snapshots with a web UI, scheduling and restore; repository and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates a UI password and prints `user=kopia password=...` in the container log (docker logs kopiadocker); the same password is stored in DockerAppData/kopiadocker/config/.server-password. Create a repository in the UI (a path under /data is a good choice) and remember its password - without it snapshots cannot be restored. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[id-id]
+name         = "Kopia"
+auth         = "kopia"
+version      = "@@VERSION@@"
+descript     = "Kopia is a fast, encrypted backup tool with a web UI: create snapshots of folders on the NAS to local disk, S3, SFTP or WebDAV, schedule them, browse the snapshot history, mount or restore files, and apply retention policies. Snapshots are always encrypted and deduplicated, and the repository and its configuration stay in the application data folder."
+release_note = "1. First release: Kopia 20261110 from Docker Hub as a non-root container. Encrypted, deduplicated snapshots with a web UI, scheduling and restore; repository and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates a UI password and prints `user=kopia password=...` in the container log (docker logs kopiadocker); the same password is stored in DockerAppData/kopiadocker/config/.server-password. Create a repository in the UI (a path under /data is a good choice) and remember its password - without it snapshots cannot be restored. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[nb-no]
+name         = "Kopia"
+auth         = "kopia"
+version      = "@@VERSION@@"
+descript     = "Kopia is a fast, encrypted backup tool with a web UI: create snapshots of folders on the NAS to local disk, S3, SFTP or WebDAV, schedule them, browse the snapshot history, mount or restore files, and apply retention policies. Snapshots are always encrypted and deduplicated, and the repository and its configuration stay in the application data folder."
+release_note = "1. First release: Kopia 20261110 from Docker Hub as a non-root container. Encrypted, deduplicated snapshots with a web UI, scheduling and restore; repository and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates a UI password and prints `user=kopia password=...` in the container log (docker logs kopiadocker); the same password is stored in DockerAppData/kopiadocker/config/.server-password. Create a repository in the UI (a path under /data is a good choice) and remember its password - without it snapshots cannot be restored. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[nl-nl]
+name         = "Kopia"
+auth         = "kopia"
+version      = "@@VERSION@@"
+descript     = "Kopia is a fast, encrypted backup tool with a web UI: create snapshots of folders on the NAS to local disk, S3, SFTP or WebDAV, schedule them, browse the snapshot history, mount or restore files, and apply retention policies. Snapshots are always encrypted and deduplicated, and the repository and its configuration stay in the application data folder."
+release_note = "1. First release: Kopia 20261110 from Docker Hub as a non-root container. Encrypted, deduplicated snapshots with a web UI, scheduling and restore; repository and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates a UI password and prints `user=kopia password=...` in the container log (docker logs kopiadocker); the same password is stored in DockerAppData/kopiadocker/config/.server-password. Create a repository in the UI (a path under /data is a good choice) and remember its password - without it snapshots cannot be restored. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[sv-se]
+name         = "Kopia"
+auth         = "kopia"
+version      = "@@VERSION@@"
+descript     = "Kopia is a fast, encrypted backup tool with a web UI: create snapshots of folders on the NAS to local disk, S3, SFTP or WebDAV, schedule them, browse the snapshot history, mount or restore files, and apply retention policies. Snapshots are always encrypted and deduplicated, and the repository and its configuration stay in the application data folder."
+release_note = "1. First release: Kopia 20261110 from Docker Hub as a non-root container. Encrypted, deduplicated snapshots with a web UI, scheduling and restore; repository and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates a UI password and prints `user=kopia password=...` in the container log (docker logs kopiadocker); the same password is stored in DockerAppData/kopiadocker/config/.server-password. Create a repository in the UI (a path under /data is a good choice) and remember its password - without it snapshots cannot be restored. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[th-th]
+name         = "Kopia"
+auth         = "kopia"
+version      = "@@VERSION@@"
+descript     = "Kopia is a fast, encrypted backup tool with a web UI: create snapshots of folders on the NAS to local disk, S3, SFTP or WebDAV, schedule them, browse the snapshot history, mount or restore files, and apply retention policies. Snapshots are always encrypted and deduplicated, and the repository and its configuration stay in the application data folder."
+release_note = "1. First release: Kopia 20261110 from Docker Hub as a non-root container. Encrypted, deduplicated snapshots with a web UI, scheduling and restore; repository and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates a UI password and prints `user=kopia password=...` in the container log (docker logs kopiadocker); the same password is stored in DockerAppData/kopiadocker/config/.server-password. Create a repository in the UI (a path under /data is a good choice) and remember its password - without it snapshots cannot be restored. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[vi-vn]
+name         = "Kopia"
+auth         = "kopia"
+version      = "@@VERSION@@"
+descript     = "Kopia is a fast, encrypted backup tool with a web UI: create snapshots of folders on the NAS to local disk, S3, SFTP or WebDAV, schedule them, browse the snapshot history, mount or restore files, and apply retention policies. Snapshots are always encrypted and deduplicated, and the repository and its configuration stay in the application data folder."
+release_note = "1. First release: Kopia 20261110 from Docker Hub as a non-root container. Encrypted, deduplicated snapshots with a web UI, scheduling and restore; repository and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates a UI password and prints `user=kopia password=...` in the container log (docker logs kopiadocker); the same password is stored in DockerAppData/kopiadocker/config/.server-password. Create a repository in the UI (a path under /data is a good choice) and remember its password - without it snapshots cannot be restored. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
