@@ -1,107 +1,242 @@
 # kopia-for-tos
 
 > TerraMaster TOS 7 App Center — **Docker application** package for
-> [Kopia](https://github.com/kopia/kopia).
+> [Kopia](https://github.com/kopia/kopia), the encrypted deduplicated backup
+> tool.
+
+- App Center ID: **`kopiadocker`** · publisher **Moechz**
+- Package version: **`20261110.0.231742-3`** (upstream `kopia/kopia:20261110.0.231742`)
+- Architectures: **x86_64** and **aarch64** (one package each)
+- Open: `http://<NAS-IP>:8143/`
 
 ## What this is
 
-A four-file TOS Docker application archive (`kopiadocker.tar.gz`) that installs
-Kopia on TOS 7 through the App Center:
+A Docker application archive (`kopiadocker_x86_64.tar.gz` /
+`kopiadocker_aarch64.tar.gz`) that installs Kopia on TOS 7 through the App
+Center. It contains exactly the four files TOS expects:
 
-- `config.ini` — TOS application metadata (`application_type: docker`, id `kopiadocker`)
-- `kopiadocker.lang` — 23-language superset (TOS requires 14)
-- `kopiadocker.svg` — application icon (953 bytes, 4 SVG elements)
-- `docker-compose.yml` — one service, image `kopia/kopia:20261110.0.231742`
+| File | Purpose |
+|---|---|
+| `config.ini` | TOS application metadata (`application_type: docker`, id `kopiadocker`, port 8143) |
+| `kopiadocker.lang` | 23-language metadata superset (TOS requires 14) |
+| `kopiadocker.svg` | application icon (953 bytes, 24 SVG elements) |
+| `docker-compose.yml` | two services: the Kopia server and a small Caddy front |
 
 ## How it works
 
 | | |
 |---|---|
-| Container image | `kopia/kopia:20261110.0.231742` (Docker Hub, used unmodified) |
-| Open | `http://<NAS-IP>:8143/` (container port 51515) |
-| Runs as | non-root, `user: "1000:1000"` |
+| Application image | `kopia/kopia:20261110.0.231742` (Docker Hub, used unmodified, digest `sha256:efc5fd7a…`) |
+| Web front | `caddy:2.11.4-alpine` (Docker Hub official image, internal only) |
+| Published port | **8143 → 8080** (Caddy). Kopia itself listens on 51515 and is not published |
+| Open UI | `http://<NAS-IP>:8143/snapshots` (after the landing page and the Basic-auth prompt) |
+| Runs as | `1000:1000` in **both** containers — no root, no `privileged`, no `cap_add`, no host network, no Docker socket |
 | Persistent data | `/config` → `/Volume1/DockerAppData/kopiadocker/config`, `/data` → `/Volume1/DockerAppData/kopiadocker/data` |
-| Logs | `docker logs kopiadocker` (stdout/stderr) |
+| Logs | `docker logs kopiadocker`, `docker logs kopiadocker-web` |
 
-`/config` holds `kopia.config`, the generated UI password and server logs; `/data` (mounted from `.../data`) is the recommended place for a filesystem repository.
+### Why there are two containers
 
-## Design highlights
+The Kopia server answers **HTTP 401 on every path, `/` included**, until the
+browser sends HTTP Basic credentials, and it refuses to start without an
+account. A browser gets a login dialog, but the App Center open check made a
+plain request, saw 401 and reported the app as *not openable* — that is the
+x86_64 blocker of the `-2` review, and it also made the declared functionality
+unusable (F5).
 
-- **Non-root.** `user: "1000:1000"`; verified on real hardware (the container reports uid 1000).
-- **Entrypoint wrapper**: generates a random UI password (stored in `config/.server-password`), prints the login line and starts the Kopia server with `--ui --insecure`.
-- **Fixed image tag, never `:latest`**, Docker Hub only, no `privileged`, no `network_mode: host`, and no Docker socket, no `cap_add`.
-- **Health check** probing the service on container port 51515.
-- **Deterministic build**: GNU tar with uid/gid 0 and zeroed timestamps, gzip without a timestamp, plus the review-standards self-check above.
-- **Password generated once.** No credential is baked into the package: the wrapper creates a random UI password, stores it in the config volume and prints the login line.
-- **Repository created in the UI.** The package does not create a repository; the user picks the storage location and the (separate) repository password.
+The `kopiadocker-web` container solves it without weakening the app:
+
+- `GET /` **without** the marker cookie → a public, secret-free landing page
+  with HTTP **200** (this is what the App Center opens);
+- the landing page hands out a one-day marker cookie and links to
+  `/snapshots`;
+- **every** other request — including `/` once the cookie is present — is
+  reverse-proxied to the Kopia server, which keeps its own Basic auth. The 401
+  challenge reaches the browser exactly as before, just after a real page.
+
+The landing page contains no credentials, no configuration and no backup data.
+
+### Authentication
+
+Kopia has no built-in account, so the first start generates a random
+20-character UI password:
+
+- user `kopia`, password in
+  `/Volume1/DockerAppData/kopiadocker/config/.server-password` (mode `600`);
+- the password is passed to the server through `KOPIA_SERVER_PASSWORD`, **not**
+  on the command line and **not** into the log (that was review item F10);
+- delete the file and restart the app to rotate it.
+
+### Repository backends
+
+The repository is created or connected **in the UI**; nothing is created by the
+package. Kopia supports, and this package documents and discloses, all of the
+upstream backends:
+
+| Backend | Where the data goes |
+|---|---|
+| `filesystem` | a folder on the NAS — `/data/repository` is the suggested one |
+| `s3` | Amazon S3 or any S3-compatible host (MinIO, Wasabi, Hetzner, …) |
+| `b2` | Backblaze B2 |
+| `azure` | Azure Blob Storage |
+| `gcs` | Google Cloud Storage |
+| `gdrive` | Google Drive |
+| `sftp` | any SFTP server |
+| `webdav` | any WebDAV share |
+| `rclone` | any rclone remote |
+| `server` | another Kopia repository server |
+
+Everything is encrypted on the NAS before it is uploaded. The full
+endpoint/data/destination table is in [PRIVACY.md §3](PRIVACY.md#3-data-sent-to-third-parties-api-disclosure).
+
+Because the server is started with `--persist-credentials`, the repository
+password is kept in `config/kopia.config.kopia-password` (mode `600`) so that
+the repository reconnects after a reboot and scheduled snapshots keep running.
+Delete that file if you prefer to be asked again.
+
+## Repository layout
+
+```text
+.
+├── CHANGELOG.md                  release notes, one section per package version
+├── LICENSE                       MIT for the packaging (upstream stays Apache-2.0)
+├── NOTICE.md                     upstream licences, image digests, trademark, T1 note
+├── PRIVACY.md                    data stored / sent / retained, rights, deletion
+├── README.md                     this file
+├── TOSAppSelfTestingTool         official TerraMaster check tool (dev only, not shipped)
+├── tosapp.json                   package spec consumed by scripts/build.sh
+├── scripts/
+│   ├── build.sh                   stage → verify → pack one architecture
+│   └── build-dual.sh              both architectures + official `-c` check
+├── src/
+│   ├── config.ini                 TOS metadata template (@@VERSION@@ / @@PLATFORM@@)
+│   ├── kopiadocker.lang           generated from tosapp.json (tosdocker lang)
+│   ├── kopiadocker.svg            icon
+│   ├── docker-compose.yml         the two services + x-app-meta
+│   ├── entrypoint.sh              Kopia wrapper (password, flags) — embedded into compose
+│   └── web-entrypoint.sh          Caddy wrapper (landing page + proxy) — embedded into compose
+├── test/
+│   └── install-and-verify.sh      on-device E2E (needs root; never against production data)
+├── tools/
+│   └── verify.py                  review-standards self-check (hard gate of the build)
+└── out/                           build products (git-ignored)
+```
+
+`src/entrypoint.sh` and `src/web-entrypoint.sh` are embedded into
+`docker-compose.yml` at build time (with `$` doubled for compose
+interpolation); `tools/verify.py` fails the build if the embedded copies differ
+from the files in `src/`.
+
+## Data and uninstall
+
+Everything persistent lives in **one** directory,
+`/Volume1/DockerAppData/kopiadocker/`:
+
+| Path | Content | Delete it? |
+|---|---|---|
+| `config/` | `kopia.config` (repository connection), `kopia.config.kopia-password` (repository password, 600), `.server-password` (UI password, 600), `cache/` | deleting it removes the connection and the passwords, **not** the backups |
+| `data/` | the backups, if you chose a filesystem repository | deleting it deletes those backups — keep a copy elsewhere |
+
+Uninstall:
+
+1. App Center → Kopia → **Uninstall** (and tick "delete data" if offered), or
+   `docker compose -p kopiadocker down` from the package directory;
+2. delete `/Volume1/DockerAppData/kopiadocker/` to remove the repository, the
+   configuration and both passwords. Backups stored on S3/B2/WebDAV/SFTP are
+   **not** touched by an uninstall — remove them at the provider if you want
+   them gone;
+3. no file is left outside that directory: the Caddy front uses the
+   container-private `/tmp`, and no system service, cron entry or user is
+   created on the NAS.
 
 ## Privacy
 
-This application runs entirely on your NAS. It does not include analytics, telemetry or advertising SDKs, and the packaging contains no code that sends data to the packager. Data is only exchanged with the services you configure yourself (for example media servers, notification endpoints or model APIs), and only from the container. Everything the application stores lives in the application data folder described above; removing the app with its data deletes it.
+See [PRIVACY.md](PRIVACY.md) — public URL, linked from the App Center `help`
+field. In short:
 
-## Third-party components
+- everything runs on the NAS; **no telemetry, no analytics, no update check**
+  (`--no-check-for-updates` and `KOPIA_CHECK_FOR_UPDATES=false`);
+- data leaves the NAS only through the repository backend **you** configure
+  (plus notification profiles, if you add them) — full endpoint table in
+  PRIVACY §3;
+- the UI password and the repository password are stored mode `600` and are
+  never logged;
+- you can access, correct and delete everything locally; the deletion channel
+  and the contact are in PRIVACY §5 and §9.
 
-The package runs the upstream image `kopia/kopia:20261110.0.231742` unmodified. Its components and their licences are those of the upstream project (https://github.com/kopia/kopia), which is distributed under **Apache-2.0**. No upstream source code is redistributed in this repository; only the four packaging files are original work.
+## Notices
 
-## Runtime file manifest
-
-Everything the application writes on the NAS lives inside its own data
-directory; the container-internal `/tmp` is discarded with the container. The
-table lists what is created and how it behaves. Nothing else is written.
-
-| Path | Purpose | Created when | Growth bound | Lifecycle |
-|---|---|---|---|---|
-| `/Volume1/DockerAppData/kopiadocker/config` | Kopia application data (everything the container writes outside /tmp) | on first start / on demand | bounded by your own data | persistent; kept on uninstall unless you ask to delete it |
-| `/Volume1/DockerAppData/kopiadocker/data` | Kopia application data (everything the container writes outside /tmp) | on first start / on demand | bounded by your own data | persistent; kept on uninstall unless you ask to delete it |
+See [NOTICE.md](NOTICE.md): Kopia is Apache-2.0 (upstream authors), Caddy is
+Apache-2.0 (Caddy authors), the packaging is MIT, the registry is Docker Hub
+only, and the T1/CVE position of the pinned image is documented there.
 
 ## Build
 
 ```bash
-scripts/build.sh                  # -> out/kopiadocker.tar.gz + .sha256
-scripts/build.sh 20261110.0.231742-2   # packaging iteration bump
-scripts/build.sh 20261110.0.231742-1 aarch64
+scripts/build-dual.sh 20261110.0.231742-3    # both architectures + official -c
+scripts/build.sh 20261110.0.231742-3 aarch64 # single architecture
 ```
 
-The build stages the four files, substitutes the version/platform placeholders,
-embeds `src/entrypoint.sh` into the compose file (escaping every `$` as `$$`), removes CRLF/BOM/AppleDouble, then runs
-`tools/verify.py`, a review-standards self-check (archive layout, JSON validity,
-required fields, 14+ language coverage, version consistency, Docker-Hub-only
-images, fixed tag, reserved/recommended host ports, non-root user, per-service
-healthcheck/TZ/restart, data path below the application data root, never the
-`/Volume*` wildcard, comment-free sequence blocks, `x-app-meta` position, no
-literal secrets and the SVG size/element limits).
+The build stages the four files, substitutes version/platform, embeds both
+wrappers, strips CRLF/BOM/AppleDouble, runs `tools/verify.py` (archive layout,
+JSON validity, required fields, 14+ languages, version consistency, Docker-Hub
+only images, fixed tags, reserved/recommended ports, non-root user in every
+service, per-service healthcheck/TZ/restart, data paths below the application
+data root, never the `/Volume*` wildcard, comment-free sequence blocks,
+`x-app-meta` position, embedded-wrapper round trip, no literal secrets, SVG
+limits), and then packs a deterministic GNU tar + gzip.
 
-## Local verification
+## Verification
 
 ```bash
-./TOSAppSelfTestingTool -c out/kopiadocker.tar.gz   # official spec check
-bash test/install-and-verify.sh                  # on-device E2E (needs root)
+./TOSAppSelfTestingTool -c out/kopiadocker_x86_64.tar.gz   # official spec check
+./TOSAppSelfTestingTool -c out/kopiadocker_aarch64.tar.gz
+bash test/install-and-verify.sh                            # on-device E2E (needs root)
+python3 ../stage.py . --timeout 300                        # isolated runtime check
 ```
 
-> Docker applications cannot be side-loaded through the App Center's manual
-> install page (it accepts `.deb` only); the official self-testing tool's `-i`
-> mode or `docker compose` are the only ways to install one for testing.
+> A Docker application cannot be side-loaded through the App Center's manual
+> install page (it accepts `.deb` only); the official tool's `-i` mode or
+> `docker compose` are the ways to install one for testing.
 
-## Store submission checklist
+## Upgrade from `20261110.0.231742-2`
 
-1. Public GitHub repo (code + README only).
-2. Release **tag `v20261110.0.231742-1`**, assets `kopiadocker.tar.gz` +
-   `kopiadocker.tar.gz.sha256` (Docker asset naming: `<app_id>.tar.gz`, **no
-   platform suffix**).
-3. Developer platform → Add Application: ID `kopiadocker`, package type Docker,
-   repository URL, architecture `x86_64`.
-4. Version Management → Add Version `20261110.0.231742-1` → automated validation → review.
+The data layout is unchanged (`config/`, `data/`), so an upgrade keeps the
+repository and its password. Two behaviour changes:
 
-## License / branding
+1. the app now opens on port **8143** (unchanged) but serves the **landing
+   page** first; the UI is one click further, at `/snapshots`;
+2. the UI password is no longer printed to the log — read
+   `config/.server-password` (it already exists from the previous version, so
+   the same password keeps working);
+3. `--persist-credentials` is now enabled: after the first start of `-3` your
+   repository reconnects automatically and `config/kopia.config.kopia-password`
+   appears (mode 600).
 
-Kopia is distributed by its upstream authors under **Apache-2.0**. The container image is the official image from Docker Hub (`kopia/kopia:20261110.0.231742`) and is used unmodified; no upstream source code is redistributed here. This packaging is an independent community submission by Moechz and is not affiliated with the upstream project or TerraMaster.
+## Troubleshooting
+
+| Symptom | Cause / fix |
+|---|---|
+| Landing page with "Kopia is running" | normal first visit — click *Open the Kopia web interface* |
+| Browser asks for user/password | Basic auth: user `kopia`, password from `config/.server-password` |
+| Landing page keeps coming back | cookies are blocked for this site; allow the `kopia_ui` cookie or open `http://<NAS-IP>:8143/snapshots` directly |
+| `Repository not configured` in the UI | create or connect the repository (`/repo`) — the package intentionally does not create one |
+| Scheduled snapshots stopped after a reboot | check `docker logs kopiadocker`; the stored repository password must be readable (`config/kopia.config.kopia-password`, 600) |
 
 ## Limitations
 
-- The UI is plain HTTP; use a TLS reverse proxy before exposing it to the internet.
-- The repository password is not stored by the package; losing it means losing the restores.
-- Snapshot storage grows with the folders you back up; watch free space on the NAS.
+- The UI is plain HTTP; use a TLS reverse proxy before exposing it to the
+  internet.
+- Mounting snapshots as a filesystem is not offered (no FUSE in the
+  container); restores are downloads from the UI.
+- Snapshot storage grows with the folders you back up; watch free space.
+- aarch64 packages are built from the same source and checked with the official
+  tool, but the runtime verification in this repository ran on x86_64 hardware.
+
+## License
+
+Packaging: MIT (see [LICENSE](LICENSE)). Kopia: Apache-2.0. Caddy:
+Apache-2.0. Full attributions in [NOTICE.md](NOTICE.md).
 
 ---
 
-Packaged for TOS 7 by Moechz. Upstream image used unmodified from Docker Hub.
+Packaged for TOS 7 by Moechz. Upstream images used unmodified from Docker Hub.

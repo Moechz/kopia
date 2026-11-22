@@ -1,23 +1,31 @@
 # ===========================================================================
-# Kopia for TerraMaster TOS 7 (Docker application)
+# Kopia for TerraMaster TOS 7 (multi-container Docker application)
 # ===========================================================================
-# Upstream image : kopia/kopia:20261110.0.231742 (Docker Hub, used unmodified)
-#                  -> https://github.com/kopia/kopia
+# App image  : kopia/kopia:20261110.0.231742 (Docker Hub, used unmodified)
+#              -> https://github.com/kopia/kopia
+# Web front  : caddy:2.11.4-alpine (Docker Hub official image, internal only)
 #
-# Ports   : host 8143 -> container 51515. The host port is in the
-#           TOS-recommended 8000-19999 range and is not one of the reserved
-#           ports (22/80/443/445/3306/5050/5432/6379/8181/8443).
+# Ports   : host 8143 -> container 8080 (the Caddy front). The host port is in
+#           the TOS-recommended 8000-19999 range and is not one of the reserved
+#           ports (22/80/443/445/3306/5050/5432/6379/8181/8443). Kopia itself
+#           listens on 51515 and is reachable only from the Caddy container:
+#           the Kopia server answers every path, "/" included, with HTTP 401
+#           until Basic credentials arrive, so publishing it directly made the
+#           app impossible to open. Caddy serves a public landing page on "/"
+#           (200) and proxies the rest to Kopia, which keeps its own auth.
 # Volumes : all persistent data lives below
 #           /Volume1/DockerAppData/kopiadocker/. The /Volume* wildcard is
-#           deliberately NOT used: the platform does not expand it.
-# TOS rules honoured: Docker Hub image with a fixed tag (never ':latest'),
-#           container_name == application id, restart: unless-stopped,
-#           non-root user, no privileged mode, no network_mode: host, no
-#           cap_add, explicit TZ, a healthcheck on the only service, and
-#           x-app-meta as the last block.
-# Wrapper : the image starts a server that needs a user account before it can be used; this
-#           wrapper generates a random UI password on first start, stores it in /config and
-#           prints the login line in the container log.
+#           deliberately NOT used: the platform does not expand it. Caddy keeps
+#           its state in /tmp and needs no volume.
+# TOS rules honoured: Docker Hub images with fixed tags (never ':latest'),
+#           container_name == application id for the app container,
+#           restart: unless-stopped, non-root user in every container, no
+#           privileged mode, no network_mode: host, no cap_add, explicit TZ,
+#           a healthcheck on every service, and x-app-meta as the last block.
+# Wrapper : the image starts a server that needs an account before it can be
+#           used; this wrapper generates a random UI password on first start,
+#           stores it in /config (mode 600) and passes it through the
+#           environment, so it never appears in the log or in `docker inspect`.
 # Escaping: docker compose interpolates ${VAR}/$VAR in compose files, so any
 #           '$' meant for the shell is written '$$'.
 #
@@ -37,8 +45,8 @@ services:
     command:
       - |
         @@ENTRYPOINT_SH@@
-    ports:
-      - "8143:51515"
+    expose:
+      - "51515"
     environment:
       TZ: "Asia/Shanghai"
     volumes:
@@ -50,6 +58,30 @@ services:
       timeout: 10s
       retries: 3
       start_period: 45s
+
+  kopiadocker-web:
+    image: caddy:2.11.4-alpine
+    container_name: kopiadocker-web
+    restart: unless-stopped
+    user: "1000:1000"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        @@WEB_ENTRYPOINT_SH@@
+    depends_on:
+      - kopiadocker
+    ports:
+      - "8143:8080"
+    environment:
+      TZ: "Asia/Shanghai"
+      XDG_CONFIG_HOME: "/tmp/caddy"
+      XDG_DATA_HOME: "/tmp/caddy"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
 # TOS App Center web metadata (must be the last block of the file):
 # web.port is the published host port above, protocol is http.

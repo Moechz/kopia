@@ -1,0 +1,257 @@
+# ===========================================================================
+# Kopia for TerraMaster TOS 7 (multi-container Docker application)
+# ===========================================================================
+# App image  : kopia/kopia:20261110.0.231742 (Docker Hub, used unmodified)
+#              -> https://github.com/kopia/kopia
+# Web front  : caddy:2.11.4-alpine (Docker Hub official image, internal only)
+#
+# Ports   : host 8143 -> container 8080 (the Caddy front). The host port is in
+#           the TOS-recommended 8000-19999 range and is not one of the reserved
+#           ports (22/80/443/445/3306/5050/5432/6379/8181/8443). Kopia itself
+#           listens on 51515 and is reachable only from the Caddy container:
+#           the Kopia server answers every path, "/" included, with HTTP 401
+#           until Basic credentials arrive, so publishing it directly made the
+#           app impossible to open. Caddy serves a public landing page on "/"
+#           (200) and proxies the rest to Kopia, which keeps its own auth.
+# Volumes : all persistent data lives below
+#           /Volume1/DockerAppData/kopiadocker/. The /Volume* wildcard is
+#           deliberately NOT used: the platform does not expand it. Caddy keeps
+#           its state in /tmp and needs no volume.
+# TOS rules honoured: Docker Hub images with fixed tags (never ':latest'),
+#           container_name == application id for the app container,
+#           restart: unless-stopped, non-root user in every container, no
+#           privileged mode, no network_mode: host, no cap_add, explicit TZ,
+#           a healthcheck on every service, and x-app-meta as the last block.
+# Wrapper : the image starts a server that needs an account before it can be
+#           used; this wrapper generates a random UI password on first start,
+#           stores it in /config (mode 600) and passes it through the
+#           environment, so it never appears in the log or in `docker inspect`.
+# Escaping: docker compose interpolates ${VAR}/$VAR in compose files, so any
+#           '$' meant for the shell is written '$$'.
+#
+# NOTE for maintainers: never place a comment line directly in front of a
+# "- value" sequence item (ports, volumes, ...). The official
+# TOSAppSelfTestingTool parses the compose file line by line; a comment inside
+# a sequence makes it skip its permission sync, the mounted directories stay
+# root-owned and the non-root container cannot write into them.
+
+services:
+  kopiadocker:
+    image: kopia/kopia:20261110.0.231742
+    container_name: kopiadocker
+    restart: unless-stopped
+    user: "1000:1000"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        #!/bin/sh
+        # ===========================================================================
+        # Kopia entrypoint for a non-root container (TOS 7 requirement).
+        #
+        # Two problems are solved here:
+        #
+        # 1. Credentials. Kopia's web UI is protected by HTTP Basic auth and the
+        #    server refuses to run without an account, so the first start generates a
+        #    random UI password, stores it in the config volume (mode 600) and hands it
+        #    to the server through KOPIA_SERVER_PASSWORD - never on the command line
+        #    (visible in `docker inspect`) and never in the container log. Earlier
+        #    versions echoed the password into the log; that is the F10 finding.
+        #
+        # 2. The landing page. Everything Kopia serves - including "/" - answers 401
+        #    until the browser sends Basic credentials, so the App Center open check
+        #    saw "HTTP 401" and reported the app as not openable. The companion
+        #    kopiadocker-web container serves a public landing page on the published
+        #    port and proxies everything else to this server, so "/" answers 200 while
+        #    the UI itself stays behind Basic auth.
+        #
+        # Notes:
+        #  * --disable-file-logging keeps the container log (docker logs) as the only
+        #    log sink: nothing is written below /config or /data by the logger, and no
+        #    request bodies or credentials end up in a file.
+        #  * --persist-credentials stores the *repository* password in
+        #    /config/kopia.config.kopia-password (mode 600) so that a repository
+        #    created in the UI reconnects automatically after a restart and scheduled
+        #    snapshots keep running. Delete that file to be asked again.
+        # ===========================================================================
+        set -e
+        set -u
+
+        CFG=/config
+        mkdir -p "$$CFG" /data 2>/dev/null || true
+
+        PW_FILE="$$CFG/.server-password"
+        if [ -s "$$PW_FILE" ]; then
+          PW=$$(cat "$$PW_FILE")
+        else
+          PW=$$(head -c 32 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 20)
+          printf '%s' "$$PW" > "$$PW_FILE"
+          chmod 600 "$$PW_FILE" 2>/dev/null || true
+        fi
+
+        echo "==============================================================="
+        echo " Kopia server starting on container port 51515"
+        echo " Web UI: open the published port, then the landing page entry."
+        echo " UI user: kopia"
+        echo " UI password file: $$PW_FILE"
+        echo "   -> DockerAppData/kopiadocker/config/.server-password"
+        echo " The password is deliberately NOT printed here (it would end up in"
+        echo " docker logs and in any log collector). Read the file instead."
+        echo "==============================================================="
+
+        # Pass the UI password as an environment variable so that it does not show up
+        # in `docker inspect` (compose environment) or in the process arguments.
+        KOPIA_SERVER_PASSWORD="$$PW"
+        export KOPIA_SERVER_PASSWORD
+
+        # No update check, no telemetry: the only outbound traffic is the repository
+        # traffic to the storage backend the user configures.
+        KOPIA_CHECK_FOR_UPDATES=false
+        export KOPIA_CHECK_FOR_UPDATES
+
+        # Keep the repository password so the server reconnects after a restart.
+        KOPIA_PERSIST_CREDENTIALS_ON_CONNECT=true
+        export KOPIA_PERSIST_CREDENTIALS_ON_CONNECT
+
+        exec /bin/kopia server start \
+          --address=0.0.0.0:51515 \
+          --config-file="$$CFG/kopia.config" \
+          --server-username=kopia \
+          --cache-directory="$$CFG/cache" \
+          --disable-file-logging \
+          --disable-content-log \
+          --persist-credentials \
+          --no-check-for-updates \
+          --ui \
+          --insecure
+    expose:
+      - "51515"
+    environment:
+      TZ: "Asia/Shanghai"
+    volumes:
+      - /Volume1/DockerAppData/kopiadocker/config:/config
+      - /Volume1/DockerAppData/kopiadocker/data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -o /dev/null http://127.0.0.1:51515/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+
+  kopiadocker-web:
+    image: caddy:2.11.4-alpine
+    container_name: kopiadocker-web
+    restart: unless-stopped
+    user: "1000:1000"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        #!/bin/sh
+        # ===========================================================================
+        # Public landing page + reverse proxy for the Kopia UI (container: kopiadocker-web).
+        #
+        # Why this container exists: the Kopia server answers 401 on every path -
+        # including "/" - until the browser sends HTTP Basic credentials, so the App
+        # Center could not open the app ("installed but could not be opened"). This
+        # tiny Caddy process owns the published port and:
+        #
+        #   * answers GET / with a plain, public 200 landing page (no secrets, no data),
+        #   * lets that page hand out a one-day marker cookie,
+        #   * proxies every other request - and every request from a browser that
+        #     already has the cookie - to the Kopia server, which keeps its own Basic
+        #     auth. The 401 challenge therefore reaches the browser exactly as before,
+        #     just after a real page instead of on the very first request.
+        #
+        # Caddy runs as uid 1000 (no root, no capabilities) and keeps its state in
+        # /tmp, which is discarded with the container; no data volume is written.
+        # ===========================================================================
+        set -eu
+
+        CFG=/tmp/Caddyfile
+
+        cat > "$$CFG" <<'CADDYFILE'
+        {
+        	admin off
+        	auto_https off
+        	persist_config off
+        	storage file_system /tmp/caddy
+        }
+
+        :8080 {
+        	@landing {
+        		path /
+        		not header Cookie *kopia_ui=*
+        	}
+
+        	handle @landing {
+        		header Set-Cookie "kopia_ui=1; Path=/; Max-Age=86400; SameSite=Lax"
+        		header Content-Type "text/html; charset=utf-8"
+        		header -Server
+        		respond <<HTML
+        <!doctype html>
+        <html lang="en">
+        <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Kopia - backup for TOS</title>
+        <style>
+         body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;margin:0;
+              background:#0f172a;color:#e2e8f0;display:flex;min-height:100vh;
+              align-items:center;justify-content:center}
+         main{max-width:34rem;padding:2rem;background:#1e293b;border-radius:12px}
+         h1{margin:0 0 .25rem;font-size:1.6rem}
+         p{line-height:1.55;margin:.75rem 0}
+         a.button{display:inline-block;margin-top:1rem;padding:.7rem 1.2rem;
+              background:#2563eb;color:#fff;border-radius:8px;text-decoration:none;
+              font-weight:600}
+         code{background:#0f172a;padding:.15rem .35rem;border-radius:4px;font-size:.9em}
+         footer{margin-top:1.5rem;font-size:.8rem;color:#94a3b8}
+        </style>
+        </head>
+        <body>
+        <main>
+        <h1>Kopia is running</h1>
+        <p>Kopia is an encrypted, deduplicated backup tool. The web interface that
+        manages snapshots, schedules and restores is protected by HTTP Basic
+        authentication.</p>
+        <p>User <code>kopia</code> - the password was generated on first start and is
+        stored on the NAS in
+        <code>DockerAppData/kopiadocker/config/.server-password</code> (mode 600).</p>
+        <p><a class="button" href="/snapshots">Open the Kopia web interface</a></p>
+        <p>The browser will ask for the user name and that password.</p>
+        <footer>Independent community package for TerraMaster TOS 7. Kopia is
+        Apache-2.0 software by the Kopia authors; this page and the packaging are not
+        affiliated with them or with TerraMaster.</footer>
+        </main>
+        </body>
+        </html>
+        HTML 200
+        	}
+
+        	handle {
+        		reverse_proxy kopiadocker:51515
+        	}
+        }
+        CADDYFILE
+
+        exec caddy run --config "$$CFG" --adapter caddyfile
+    depends_on:
+      - kopiadocker
+    ports:
+      - "8143:8080"
+    environment:
+      TZ: "Asia/Shanghai"
+      XDG_CONFIG_HOME: "/tmp/caddy"
+      XDG_DATA_HOME: "/tmp/caddy"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+# TOS App Center web metadata (must be the last block of the file):
+# web.port is the published host port above, protocol is http.
+x-app-meta:
+  web:
+    port: 8143
+    protocol: http

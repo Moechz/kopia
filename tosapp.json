@@ -4,7 +4,7 @@
   "image": "kopia/kopia:20261110.0.231742",
   "repo_name": "kopia",
   "mode": "wrapper",
-  "container_port": 51515,
+  "container_port": 8080,
   "category": [
     "Backup_Sync"
   ],
@@ -24,11 +24,11 @@
   "auth": "kopia",
   "upstream_url": "https://github.com/kopia/kopia",
   "upstream_license": "Apache-2.0",
-  "descript": "Kopia is a fast, encrypted backup tool with a web UI: create snapshots of folders on the NAS to local disk, S3, SFTP or WebDAV, schedule them, browse the snapshot history, mount or restore files, and apply retention policies. Snapshots are always encrypted and deduplicated, and the repository and its configuration stay in the application data folder.",
-  "release_note": "1. First release: Kopia 20261110 from Docker Hub as a non-root container. Encrypted, deduplicated snapshots with a web UI, scheduling and restore; repository and config in the application data folder.",
-  "important": "Requires DockerEngine (installed automatically if missing). The first start generates a UI password and prints `user=kopia password=...` in the container log (docker logs kopiadocker); the same password is stored in DockerAppData/kopiadocker/config/.server-password. Create a repository in the UI (a path under /data is a good choice) and remember its password - without it snapshots cannot be restored. Plain HTTP; use a TLS reverse proxy before exposing it to the internet.",
+  "descript": "Kopia is a fast, encrypted, deduplicated backup tool with a web UI: snapshot folders on the NAS into a repository on local disk, S3, Backblaze B2, WebDAV, SFTP, Google Cloud or another Kopia server; schedule snapshots, browse versions, restore files and apply retention policies. Data is encrypted on the NAS before it leaves. The UI is protected by HTTP Basic auth; repository and configuration stay in the application data folder.",
+  "important": "Requires DockerEngine (installed automatically if missing). Open the app, click 'Open the Kopia web interface' and log in as user `kopia`; the random password is generated on first start and stored in DockerAppData/kopiadocker/config/.server-password (mode 600). Create the repository in the UI - a folder under /data is simplest, S3/B2/WebDAV/SFTP also work - and keep its password: without it snapshots cannot be restored. Plain HTTP; put a TLS reverse proxy in front before exposing it to the internet.",
+  "release_note": "2. Rectified per review comments (C2-C8, C10, T1, F5, F10). Public landing page so the App Center can open the app, while the UI itself stays behind HTTP Basic auth; the UI password is no longer printed to the log; PRIVACY.md, NOTICE.md and README.md completed; third-party endpoint table; the repository password is persisted (mode 600) so snapshots survive a restart; update checks and telemetry are off. The pinned image is the newest upstream build.",
   "probe": {
-    "user_in_image": "(root)",
+    "user_in_image": "",
     "entrypoint": [
       "/bin/kopia"
     ],
@@ -42,20 +42,21 @@
       "x86_64",
       "aarch64"
     ],
-    "http_client_in_image": "",
+    "http_client_in_image": "curl",
     "trial_run": {
       "ok": false,
-      "http_code": "",
-      "state": "exited",
+      "http_code": "401",
+      "state": "running",
       "paths": [],
       "host_port": 18000,
-      "log_tail": " --url=URL [<flags>]\n    create [<flags>]\n      azure --container=CONTAINER --storage-account=STORAGE-ACCOUNT [<flags>]\n      b2 --bucket=BUCKET --key-id=KEY-ID --key=KEY [<flags>]\n      filesystem --path=PATH [<flags>]\n      from-config [<flags>]\n      gcs --bucket=BUCKET [<flags>]\n      gdrive --folder-id=FOLDER-ID [<flags>]\n      rclone --remote-path=REMOTE-PATH [<flags>]\n      s3 --bucket=BUCKET --access-key=ACCESS-KEY --secret-access-key=SECRET-ACCESS-KEY [<flags>]\n      sftp --path=PATH --host=HOST --username=USERNAME [<flags>]\n      webdav --url=URL [<flags>]\n    disconnect\n    set-client [<flags>]\n    set-parameters [<flags>]\n    status [<flags>]\n    sync-to [<flags>]\n      azure --container=CONTAINER --storage-account=STORAGE-ACCOUNT [<flags>]\n      b2 --bucket=BUCKET --key-id=KEY-ID --key=KEY [<flags>]\n      filesystem --path=PATH [<flags>]\n      from-config [<flags>]\n      gcs --bucket=BUCKET [<flags>]\n      gdrive --folder-id=FOLDER-ID [<flags>]\n      rclone --remote-path=REMOTE-PATH [<flags>]\n      s3 --bucket=BUCKET --access-key=ACCESS-KEY --secret-access-key=SECRET-ACCESS-KEY [<flags>]\n      sftp --path=PATH --host=HOST --username=USERNAME [<flags>]\n      webdav --url=URL [<flags>]\n    throttle\n      get [<flags>]\n      set [<flags>]\n    change-password [<flags>]\n    validate-provider [<flags>]\nUnable to create cache marker in log directory \"/app/logs/content-logs\": error creating cache marker: open /app/logs/content-logs/CACHEDIR.TAG: no such file or directory",
+      "log_tail": "the image alone answers 401 Unauthorized (WWW-Authenticate: Basic realm=\"Kopia\", body \"Missing credentials.\") on every path including /, and refuses to start without an account; as a non-root user it additionally cannot write /app/logs. That is why this package wraps the server (generated password + Caddy landing page on the published port).",
       "files_in_mounts": ""
     },
     "docker_hub": {},
     "github": {}
   },
   "entrypoint_file": "src/entrypoint.sh",
+  "web_entrypoint_file": "src/web-entrypoint.sh",
   "platform": "x86_64",
   "user": "1000:1000",
   "publisher": "Moechz",
@@ -63,8 +64,8 @@
   "github_repo": "kopia",
   "upstream_version": "20261110.0.231742",
   "release_tag_prefix": "v",
-  "version": "20261110.0.231742-1",
-  "help": "https://github.com/Moechz/kopia/issues",
+  "version": "20261110.0.231742-3",
+  "help": "https://github.com/Moechz/kopia/blob/main/PRIVACY.md",
   "official": "https://github.com/kopia/kopia",
   "license": "Apache-2.0",
   "docker_socket": false,
@@ -75,28 +76,31 @@
     "curl -s -o /dev/null http://127.0.0.1:51515/ || exit 1"
   ],
   "healthcheck_start_period": "45s",
-  "wrapper_note": "the image starts a server that needs a user account before it can be used; this\nwrapper generates a random UI password on first start, stores it in /config and\nprints the login line in the container log.",
-  "wrapper_note_readme": "- **Entrypoint wrapper**: generates a random UI password (stored in `config/.server-password`), prints the login line and starts the Kopia server with `--ui --insecure`.",
+  "wrapper_note": "the Kopia server answers 401 on every path (including /) unless an account is supplied, so a random UI password is generated on first start and passed to the server through the environment (never through the log or docker inspect). A second, tiny Caddy container owns the published port: it serves a public 200 landing page on / and proxies everything else to Kopia, which keeps its Basic auth.",
+  "wrapper_note_readme": "- **Two containers**: `kopiadocker` runs the Kopia server (uid 1000, no published port) and `kopiadocker-web` runs a Caddy front that serves a public landing page on `/` (HTTP 200) and reverse-proxies the UI, which keeps its HTTP Basic auth.\n- **Generated UI password**: created on first start, stored in `config/.server-password` (mode 600) and passed via `KOPIA_SERVER_PASSWORD` - it is never written to the container log.",
   "translations": {
     "zh-cn": {
-      "descript": "Kopia 是一款快速、加密的备份工具，自带网页界面：把 NAS 上的目录做成快照，备份到本地磁盘、S3、SFTP 或 WebDAV，支持定时、浏览快照历史、挂载或还原文件，并应用保留策略。快照始终加密并去重，仓库与配置都保存在应用数据目录。",
-      "important": "需要 DockerEngine（缺失时应用中心会自动安装）。首次启动会生成界面密码，并在容器日志（docker logs kopiadocker）里打印 `user=kopia password=...`；同一密码也保存在 DockerAppData/kopiadocker/config/.server-password。请在界面里创建仓库（建议放在 /data 下），并记住仓库密码——没有它无法还原快照。界面为纯 HTTP，暴露到公网前请配置带 TLS 的反向代理。",
-      "release_note": "1. 首个版本：基于 Docker Hub 的 Kopia 20261110，以非 root 容器运行。加密去重的快照备份，带网页界面、定时与还原；仓库与配置保存在应用数据目录。"
+      "descript": "Kopia 是一款快速、加密、去重的备份工具，自带网页界面：把 NAS 上的目录做成快照，存到本地磁盘、S3、Backblaze B2、WebDAV、SFTP、Google Cloud 或另一台 Kopia 服务器上的仓库；支持定时快照、浏览历史版本、还原文件与保留策略。数据在离开 NAS 之前就已加密。界面受 HTTP Basic 认证保护；仓库与配置都保存在应用数据目录。",
+      "important": "需要 DockerEngine（缺失时应用中心会自动安装）。打开应用后，在引导页点「Open the Kopia web interface」，用用户名 `kopia` 登录；随机密码在首次启动时生成，保存在 DockerAppData/kopiadocker/config/.server-password（权限 600）。请在界面里创建仓库（放在 /data 下最简单，也可用 S3/B2/WebDAV/SFTP），并记住仓库密码——没有它无法还原快照。界面为纯 HTTP，暴露到公网前请配置带 TLS 的反向代理。",
+      "release_note": "2. 按审核意见整改（C2-C8、C10、T1、F5、F10）。新增公开引导页，使应用中心能正常打开，而界面本身仍受 HTTP Basic 认证保护；界面密码不再打印到日志；补齐 PRIVACY.md、NOTICE.md 与 README.md；新增第三方端点表；仓库密码持久化（权限 600），重启后快照任务不中断；关闭更新检查与遥测。镜像仍为上游最新构建。"
     },
     "zh-hk": {
-      "descript": "Kopia 是一款快速、加密的備份工具，自帶網頁介面：把 NAS 上的目錄做成快照，備份到本機磁碟、S3、SFTP 或 WebDAV，支援定時、瀏覽快照歷史、掛載或還原檔案，並套用保留策略。快照始終加密並去重，倉庫與設定都保存在應用資料目錄。",
-      "important": "需要 DockerEngine（缺少時應用中心會自動安裝）。首次啟動會產生介面密碼，並在容器日誌（docker logs kopiadocker）裡印出 `user=kopia password=...`；同一密碼也保存在 DockerAppData/kopiadocker/config/.server-password。請在介面裡建立倉庫（建議放在 /data 下），並記住倉庫密碼——沒有它無法還原快照。介面為純 HTTP，公開到互聯網前請配置帶 TLS 的反向代理。",
-      "release_note": "1. 首個版本：基於 Docker Hub 的 Kopia 20261110，以非 root 容器運行。加密去重的快照備份，帶網頁介面、定時與還原；倉庫與設定保存在應用資料目錄。"
+      "descript": "Kopia 是一款快速、加密、去重的備份工具，自帶網頁介面：把 NAS 上的目錄做成快照，存到本機磁碟、S3、Backblaze B2、WebDAV、SFTP、Google Cloud 或另一台 Kopia 伺服器上的倉庫；支援定時快照、瀏覽歷史版本、還原檔案與保留策略。資料在離開 NAS 之前就已加密。介面受 HTTP Basic 認證保護；倉庫與設定都保存在應用資料目錄。",
+      "important": "需要 DockerEngine（缺少時應用中心會自動安裝）。開啟應用後，在引導頁點「Open the Kopia web interface」，用使用者名稱 `kopia` 登入；隨機密碼在首次啟動時產生，保存在 DockerAppData/kopiadocker/config/.server-password（權限 600）。請在介面裡建立倉庫（放在 /data 下最簡單，也可用 S3/B2/WebDAV/SFTP），並記住倉庫密碼——沒有它無法還原快照。介面為純 HTTP，公開到互聯網前請配置帶 TLS 的反向代理。",
+      "release_note": "2. 按審核意見整改（C2-C8、C10、T1、F5、F10）。新增公開引導頁，使應用中心能正常開啟，而介面本身仍受 HTTP Basic 認證保護；介面密碼不再列印到日誌；補齊 PRIVACY.md、NOTICE.md 與 README.md；新增第三方端點表；倉庫密碼持久化（權限 600），重啟後快照任務不中斷；關閉更新檢查與遙測。映像仍為上游最新建置。"
     }
   },
-  "data_notes": "`/config` holds `kopia.config`, the generated UI password and server logs; `/data` (mounted from `.../data`) is the recommended place for a filesystem repository.",
+  "data_notes": "`/config` holds `kopia.config`, `kopia.config.kopia-password` (the repository password, mode 600, written by Kopia when `--persist-credentials` is on), the generated UI password in `.server-password` and the local cache; `/data` (mounted from `.../data`) is the recommended place for a filesystem repository. Nothing else on the NAS is written; the Caddy front keeps its state in the container's /tmp.",
   "design_notes": [
-    "**Password generated once.** No credential is baked into the package: the wrapper creates a random UI password, stores it in the config volume and prints the login line.",
-    "**Repository created in the UI.** The package does not create a repository; the user picks the storage location and the (separate) repository password."
+    "**Landing page first.** Kopia answers 401 on every path until Basic credentials arrive, so the App Center open check could not even load a login prompt. A Caddy front serves a public, secret-free landing page on `/` (200) and proxies everything else to Kopia; the UI keeps its own auth, and `/snapshots` is where the app entry lands.",
+    "**Password generated once, never logged.** No credential is baked into the package: the wrapper creates a random UI password, stores it in the config volume (mode 600) and hands it over in the environment (not in the command line, not in the log).",
+    "**Repository created in the UI.** The package does not create a repository; the user picks the storage location and the (separate) repository password. `--persist-credentials` keeps that password in `config/kopia.config.kopia-password` (mode 600) so the server reconnects and scheduled snapshots continue after a restart.",
+    "**No telemetry, no update check.** `KOPIA_CHECK_FOR_UPDATES=false` plus `--no-check-for-updates`; Kopia has no analytics. The only outbound traffic is repository traffic to the storage the user configures (plus notification profiles, if the user adds any)."
   ],
   "limitations": [
     "- The UI is plain HTTP; use a TLS reverse proxy before exposing it to the internet.",
-    "- The repository password is not stored by the package; losing it means losing the restores.",
+    "- The repository password is persisted locally (mode 600) so restarts keep working; delete `config/kopia.config.kopia-password` if you prefer to re-enter it every time.",
+    "- Mounting snapshots as a filesystem is not offered: the container has no FUSE device. Restores are done by downloading the selected files from the UI.",
     "- Snapshot storage grows with the folders you back up; watch free space on the NAS."
   ]
 }

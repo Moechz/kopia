@@ -256,6 +256,24 @@ if mode == "wrapper":
             "embedded entrypoint differs from src/entrypoint.sh")
         chk("set -u" in embedded, "entrypoint must keep 'set -u'")
 
+    # The web front (Caddy) wrapper is embedded the same way; keep the two in
+    # sync so the shipped compose file cannot drift from src/.
+    web_src = root / "src" / "web-entrypoint.sh"
+    if web_src.exists():
+        _blocks = re.findall(r"^    command:\n      - \|\n(.*?)\n(?=^    [a-z_]+:)",
+                             comp, re.S | re.M)
+        chk(len(_blocks) == 2,
+            f"expected two embedded wrappers (app + web front), found {len(_blocks)}")
+        if len(_blocks) == 2:
+            web_embedded = "\n".join(
+                l[8:] if l.startswith(" " * 8) else l
+                for l in _blocks[1].splitlines()) + "\n"
+            web_source = web_src.read_text(encoding="utf-8")
+            chk("$$" not in web_source, "src/web-entrypoint.sh must not contain '$$'")
+            chk(web_embedded == web_source.replace("$", "$$"),
+                "embedded web wrapper differs from src/web-entrypoint.sh")
+            chk("set -eu" in web_embedded, "the web wrapper must keep 'set -eu'")
+
 if errs:
     print("VERIFY FAIL:")
     for e in errs:

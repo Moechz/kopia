@@ -70,14 +70,22 @@ for name in ("config.ini", f"{appid}.lang"):
 # so the script the container receives is byte-identical to src/entrypoint.sh.
 comp = stage / "docker-compose.yml"
 text = comp.read_text(encoding="utf-8")
-if "        @@ENTRYPOINT_SH@@" in text:
-    script = (src / "entrypoint.sh").read_text(encoding="utf-8")
+# Two wrappers: the Kopia server itself and the Caddy front that serves the
+# public landing page. Both are embedded byte-for-byte (only '$' is doubled for
+# compose interpolation); tools/verify.py checks the round trip.
+for placeholder, name in (("@@ENTRYPOINT_SH@@", "entrypoint.sh"),
+                          ("@@WEB_ENTRYPOINT_SH@@", "web-entrypoint.sh")):
+    needle = "        " + placeholder
+    if needle not in text:
+        continue
+    script = (src / name).read_text(encoding="utf-8")
     if "$$" in script:
-        sys.exit("FATAL: src/entrypoint.sh must not contain '$$' (escaping would not be reversible)")
+        sys.exit(f"FATAL: src/{name} must not contain '$$' (escaping would not be reversible)")
     escaped = script.replace("$", "$$")
     indented = "\n".join(("        " + l) if l.strip() else "" for l in escaped.splitlines())
-    comp.write_text(text.replace("        @@ENTRYPOINT_SH@@", indented), encoding="utf-8")
-    print(f"   staged entrypoint: {len(script.splitlines())} lines, {len(script)} bytes")
+    text = text.replace(needle, indented)
+    print(f"   staged {name}: {len(script.splitlines())} lines, {len(script)} bytes")
+comp.write_text(text, encoding="utf-8")
 PY
 
 # ---------------------------------------------------- build machine hygiene --
